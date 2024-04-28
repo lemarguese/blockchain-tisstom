@@ -1,9 +1,15 @@
 struct Patient {
     string name;
     string surName;
+    bool servedBefore;
 }
 
-enum ServiceEnum { CLEAN, REMOVE_TEETH, REPLACE_TEETH, ADD_BRACKETS }
+enum ServiceEnum {
+    CLEAN,
+    REMOVE_TEETH,
+    REPLACE_TEETH,
+    ADD_BRACKETS
+}
 
 struct Doctor {
     // workFrom, workTo -> timestamp

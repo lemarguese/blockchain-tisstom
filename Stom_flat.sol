@@ -1,6 +1,26 @@
+//File： fs://b948a53fc5d348a78f6203a080b6f783/contracts/Structures.sol
+struct Patient {
+    string name;
+    string surName;
+}
 
-// File: @openzeppelin/contracts/utils/Context.sol
+enum ServiceEnum { CLEAN, REMOVE_TEETH, REPLACE_TEETH, ADD_BRACKETS }
 
+struct Doctor {
+    // workFrom, workTo -> timestamp
+    string name;
+    string surName;
+    uint experience;
+}
+
+struct Raw {
+    // Raw data for serve data
+    Patient createdBy;
+    uint256 createdAt;
+    uint price;
+    ServiceEnum service;
+    Doctor doctor;
+}//File： @openzeppelin/contracts/utils/Context.sol
 
 // OpenZeppelin Contracts v4.4.1 (utils/Context.sol)
 
@@ -25,9 +45,7 @@ abstract contract Context {
         return msg.data;
     }
 }
-
-// File: @openzeppelin/contracts/token/ERC20/IERC20.sol
-
+//File： @openzeppelin/contracts/token/ERC20/IERC20.sol
 
 // OpenZeppelin Contracts (last updated v4.6.0) (token/ERC20/IERC20.sol)
 
@@ -110,9 +128,7 @@ interface IERC20 {
         uint256 amount
     ) external returns (bool);
 }
-
-// File: @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol
-
+//File： @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol
 
 // OpenZeppelin Contracts v4.4.1 (token/ERC20/extensions/IERC20Metadata.sol)
 
@@ -140,9 +156,7 @@ interface IERC20Metadata is IERC20 {
      */
     function decimals() external view returns (uint8);
 }
-
-// File: @openzeppelin/contracts/token/ERC20/ERC20.sol
-
+//File： @openzeppelin/contracts/token/ERC20/ERC20.sol
 
 // OpenZeppelin Contracts (last updated v4.8.0) (token/ERC20/ERC20.sol)
 
@@ -531,52 +545,62 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
         uint256 amount
     ) internal virtual {}
 }
-
-// File: contracts/Stom.sol
-
+//File： fs://b948a53fc5d348a78f6203a080b6f783/contracts/Stom.sol
 // contracts/BEP20.sol
 
 pragma solidity ^0.8.0;
 
 
+
 contract Stom is ERC20 {
 
-    constructor(uint256 initialSupply) ERC20("Tisstom", "TST") {
-        price[ServiceEnum.CLEAN] = 1;
-        price[ServiceEnum.REMOVE_TEETH] = 5;
-        price[ServiceEnum.REPLACE_TEETH] = 10;
-        price[ServiceEnum.ADD_BRACKETS] = 25;
-        _mint(msg.sender, initialSupply);
+    constructor() ERC20("Tisstom", "TST") {
+        price[ServiceEnum.CLEAN] = 1 ether;
+        price[ServiceEnum.REMOVE_TEETH] = 5 ether;
+        price[ServiceEnum.REPLACE_TEETH] = 10 ether;
+        price[ServiceEnum.ADD_BRACKETS] = 25 ether;
+        _mint(msg.sender, 1000 ether);
     }
-
-    mapping(ServiceEnum => uint) public price;
-    mapping(address => uint[]) public visit;
-    uint counter;
-
-    enum ServiceEnum { CLEAN, REMOVE_TEETH, REPLACE_TEETH, ADD_BRACKETS }
-
-    struct Patient {
-        string name;
-        string surName;
-    }
-
-    function getCount(address _who) public view returns(uint count) {
-        return visit[_who].length;
-    }
-
-    ServiceEnum serviceEnum = ServiceEnum.CLEAN;
 
     mapping (address => Patient) public patients;
+    mapping (address => Doctor) public doctors;
+    mapping(ServiceEnum => uint) public price;
+    Raw[] public visit;
+
+    event PatientVisit(address _patient, address _doctor, ServiceEnum _service, uint256 _when);
+    event PatientAdded(string _name, string _surName);
+    event DoctorAdded(string _name, string _surName, uint _exp);
 
     function addPatient(string calldata _name, string calldata _surName) external {
         patients[msg.sender].name = _name;
         patients[msg.sender].surName = _surName;
+
+        emit PatientAdded(_name, _surName);
     }
 
-    function serve (string calldata _name, string calldata _surName, ServiceEnum _whatService) external  {
+    function getDoctor (address _docAddress) public view returns(Doctor memory doctor) {
+        return doctors[_docAddress];
+    }
+
+    function addDoctor (address _docAddress, string calldata _name, string calldata _surName, uint _experience) external {
+        doctors[_docAddress].name = _name;
+        doctors[_docAddress].surName = _surName;
+        doctors[_docAddress].experience = _experience;
+
+        emit DoctorAdded(_name, _surName, _experience);
+    }
+
+    function serve (string calldata _name, string calldata _surName, ServiceEnum _whatService, address doctorAddress) external  {
         this.addPatient(_name, _surName);
-        visit[msg.sender].push(getCount(msg.sender) + 1);
+        visit.push(Raw(patients[msg.sender], block.timestamp, price[_whatService], _whatService, doctors[doctorAddress]));
         approve(address(this), price[_whatService]);
         _transfer(msg.sender, address(this), price[_whatService]);
+        
+        emit PatientVisit(msg.sender, doctorAddress, _whatService, block.timestamp);
     }
+
+    function getInformationAboutPatient (address _patient) public view returns(Patient memory patient) {
+        return patients[_patient];
+    }
+    
 }
